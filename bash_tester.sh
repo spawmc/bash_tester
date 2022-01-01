@@ -100,7 +100,7 @@ function make_env_files() {
 #   }' >"${default_files_dir}/check.sh"
 
   # Dockerfile para crear un ambiente de pruebas
-  echo 'FROM archlinux/latest
+  echo 'FROM archlinux
 MAINTAINER spawnmc
 RUN pacman -Sy git expect --noconfirm' >./Dockerfile
 
@@ -190,7 +190,8 @@ function _menu() {
 
 function init_container() {
   local container_name="$1"
-  docker run --rm -d --hostname=archlinux --name="${container_name}" --user=root -it archlinux
+  docker build -t "bash-tester:1" .
+  docker run --rm -d --hostname=archlinux --name="${container_name}" --user=root -it bash-tester:1
 }
 
 function stop_container() {
@@ -266,6 +267,8 @@ function take_tests() {
   local container_name="$1"
   local json="${2}/inputs.json"
   local script_name="$3"
+
+  _warning_color "La primera vez que se ejecuta este script puede tardar un poco, por favor espere..." >&2
 
   for key in $(jq 'keys[]' <"${json}"); do
     _info_color "--- Test ${key}: ---" | tee -a ./resume
