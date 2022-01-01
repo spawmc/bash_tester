@@ -41,6 +41,7 @@ function usage() {
   echo "           -j: Comprobar archivos para el ambiente de pruebas"
   echo "           -m: Crear funciones para el archivo check.sh a partir del archivo JSON"
   echo "    -b [NAME]: Crear respaldo del directorio de pruebas"
+  echo "    -p script: Restaurar respaldo del directorio de pruebas, se debe de indicar el script principal"
 }
 
 function make_env_files() {
@@ -270,7 +271,7 @@ function take_tests() {
   local json="${2}/inputs.json"
   local script_name="$3"
 
-  _warning_color "La primera vez que se ejecuta este script puede tardar un poco, por favor espere..." >&2
+  _warning_color "La primera vez que se ejecuta este script puede tardar un poco (se esta creando tu ambiente de pruebas), por favor espere..." >&2
 
   for key in $(jq 'keys[]' <"${json}"); do
     _info_color "--- Test ${key}: ---" | tee -a ./resume
@@ -309,10 +310,12 @@ optionR=""
 optionJ=""
 optionM=""
 optionB=""
+optionP=""
+paramP=""
 paramB=""
 paramD=""
 
-while getopts ":hd:nrjmb:" opt; do
+while getopts ":hd:nrjmb:p:" opt; do
   case $opt in
   h)
     usage
@@ -338,6 +341,10 @@ while getopts ":hd:nrjmb:" opt; do
     optionB="1"
     paramB="$OPTARG"
     ;;
+  p)
+    optionP="1"
+    paramP="$OPTARG"
+    ;;
   \?)
     _error_color "Opción inválida: -$OPTARG" >&2
     exit 1
@@ -353,15 +360,36 @@ shift $((OPTIND - 1))
 
 script_to_test="$1"
 
+function restore_from_backup() {
+  local main_script="$1"
+  local folder="${main_script%/*}"
+
+  if [ -d "${default_files_dir}" ]; then
+    _warning_color "El directorio ${default_files_dir} existe, desea sobreescribirlo?"
+    read -p "Presione [S/N]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+      rm -rf "${default_files_dir}"
+      cp -r "${folder}" "${default_files_dir}"
+      cp "${main_script}" ./"${main_script##*/}"
+    else
+      _error_color "No se pudo restaurar el directorio ${default_files_dir}"
+      exit 1
+    fi
+  fi
+}
+
 [ "$optionN" == "1" ] && make_env_files '.' && exit 0
 [ "$optionR" == "1" ] && rm -rf "${default_files_dir}" && rm -f all_logs.txt logs.txt resume Dockerfile && exit 0
 [ "$optionJ" == "1" ] && check_files "$default_files_dir" && exit 0
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
+[ "$optionP" == "1" ] && restore_from_backup "${paramP}" && exit 0
 [ "$script_to_test" ] || {
   _error_color "Si desea probar un script debe especificarlo" >&2 && usage
   exit 1
 }
+
 dependency_check "jq" "docker" "shellcheck"
 
 function ctrl_c() {
