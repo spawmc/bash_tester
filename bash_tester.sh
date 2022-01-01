@@ -376,6 +376,9 @@ function restore_from_backup() {
       _error_color "No se pudo restaurar el directorio ${default_files_dir}"
       exit 1
     fi
+  else
+    cp -r "${folder}" "${default_files_dir}"
+    cp "${main_script}" ./"${main_script##*/}"
   fi
 }
 
