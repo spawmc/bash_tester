@@ -77,7 +77,7 @@ function make_env_files() {
     "output": "Usage:",
     "return": 1
   }
-}' >"${default_files_dir}/test.json"
+}' >"${default_files_dir}/inputs.json"
 
   # Script de comprobación de estado final
   echo '#!/bin/bash
