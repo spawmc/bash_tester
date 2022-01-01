@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-project_name="test"
 default_docker_dir="/root"
 default_docker_name="bash-tester"
 default_files_dir="./testenv"
@@ -102,7 +101,8 @@ function make_env_files() {
 
   # Dockerfile para crear un ambiente de pruebas
   echo 'FROM archlinux/latest
-RUN pacman -Sy git'
+MAINTAINER spawnmc
+RUN pacman -Sy git expect --noconfirm' >./Dockerfile
 
 }
 
@@ -115,8 +115,35 @@ function check_files() {
     touch "${dir}/check.sh"
   fi
 
-  if ! cat "${dir}/inputs.json" | jq . &>/dev/null; then
+  _info_color "init.sh"
+
+  if [ "$(
+    shellcheck "${dir}"/init.sh &>/dev/null 2>&1
+    echo $?
+  )" -ne 0 ]; then
+    _warning_color "init.sh Verifique su script"
+    shellcheck "${dir}"/init.sh
+  else
+    _sucess_color "init.sh OK"
+  fi
+
+  _info_color "check.sh"
+
+  if [ "$(
+    shellcheck "${dir}"/check.sh &>/dev/null 2>&1
+    echo $?
+  )" -ne 0 ]; then
+    _warning_color "check.sh Verifique su script"
+    shellcheck "${dir}"/check.sh
+  else
+    _sucess_color "check.sh OK"
+  fi
+
+  _info_color "inputs.json"
+  if ! jq '.' <"${dir}/inputs.json" &>/dev/null 2>&1; then
     _error_color "El archivo inputs.json no es un JSON válido" >&2
+  else
+    _sucess_color "JSON OK"
   fi
 
 }
@@ -134,9 +161,9 @@ function dependency_check() {
 function make_backup() {
   local name="$1"
   mv -v "${default_files_dir}" "${name}"
-  mv -v logs.txt ${name}/log.txt
-  mv -v resume ${name}/resume
-  mv -v all_logs.txt ${name}/all_logs.txt
+  mv -v logs.txt "${name}"/log.txt
+  mv -v resume "${name}"/resume
+  mv -v all_logs.txt "${name}"/all_logs.txt
 }
 
 function _copy_to_docker() {
@@ -227,23 +254,6 @@ function _check_output() {
   fi
 }
 
-# function _check_functions() {
-#   local json="$1"
-#   IFS=$'\n' read -d "" -ra functions < <(declare -F)
-#   functs="${functions[@]//declare -f /}"
-#   keys=$(_extract_keys_from_json "$json")
-#   for key in ${keys}; do
-#     for function in ${functs}; do
-#       if [ "$(grep -c "${key}" <<<"${function}")" -gt 0 ]; then
-#         _sucess_color "[+] Función ${key} OK"
-#         break
-#       else
-#         _error_color "[-] Función ${key} FAIL"
-#       fi
-#     done
-#   done
-# }
-
 function run_final_test() {
   local container_name="$1"
   local key="$2"
@@ -263,9 +273,12 @@ function take_tests() {
     init_environment "$default_docker_name" "$default_files_dir" "$default_docker_dir" &>/dev/null
     _copy_to_docker "$default_docker_name" "$script_name" "." "$default_docker_dir"
 
-    local input=$(jq -r ".${key}.input" <"${json}")
-    local output=$(jq -r ".${key}.output" <"${json}")
-    local return=$(jq -r ".${key}.return" <"${json}")
+    local input=""
+    input=$(jq -r ".${key}.input" <"${json}")
+    local output=""
+    output=$(jq -r ".${key}.output" <"${json}")
+    local return=""
+    return=$(jq -r ".${key}.return" <"${json}")
 
     docker exec -it "${container_name}" bash -c "chmod +x ${default_docker_dir}/${script_name}"
     docker exec -it "${container_name}" bash -c "${default_docker_dir}/${script_name} ${input}" >./logs.txt
@@ -340,20 +353,11 @@ script_to_test="$1"
 [ "$optionJ" == "1" ] && check_files "$default_files_dir" && exit 0
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
-# [ "$optionD" == "1" ] && [ -d "$paramD" ] || {
-#   echo "Debe especificar un directorio valido" >&2 && usage
-#   exit 1
-# }
 [ "$script_to_test" ] || {
   _error_color "Si desea probar un script debe especificarlo" >&2 && usage
   exit 1
 }
-
-dependency_check "jq" "docker"
-
-function main() {
-  take_tests "$default_docker_name" "$default_files_dir" "$script_to_test"
-}
+dependency_check "jq" "docker" "shellcheck"
 
 function ctrl_c() {
   _error_color "Se ha interrumpido la ejecución del script"
@@ -363,4 +367,4 @@ function ctrl_c() {
 
 trap ctrl_c INT
 
-main
+take_tests "$default_docker_name" "$default_files_dir" "$script_to_test"
