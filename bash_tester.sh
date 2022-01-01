@@ -46,7 +46,7 @@ function usage() {
 
 function make_env_files() {
   local dir="$1"
-  mkdir -p "${dir}/testenv"
+  mkdir -p "${default_files_dir}"
   # Script para crear un ambiente de prueba
   echo '#!/bin/bash
   
@@ -57,7 +57,7 @@ function make_env_files() {
 #   mkdir -p $dir
 #   touch $dir/test.txt
 #   echo "hola mundo" > $dir/test.txt
-#   pacman -S git' >./testenv/init.sh
+#   pacman -S git' >"${default_files_dir}/init.sh"
 
   # JSON para ingresar las entradas y salidas esperadas
   echo '
@@ -77,7 +77,7 @@ function make_env_files() {
     "output": "Usage:",
     "return": 1
   }
-}' >./testenv/inputs.json
+}' >"${default_files_dir}/test.json"
 
   # Script de comprobación de estado final
   echo '#!/bin/bash
@@ -98,7 +98,7 @@ function make_env_files() {
 # En caso de no querer verificar nada en particular, solo se debe de crear una funcion del siguiente modo:
 #   function main() {
 #     echo "OK"
-#   }' >./testenv/check.sh
+#   }' >"${default_files_dir}/check.sh"
 
   # Dockerfile para crear un ambiente de pruebas
   echo 'FROM archlinux/latest
@@ -185,7 +185,7 @@ function make_function_from_key() {
   echo
 }
       
-      " >>./testenv/check.sh
+      " >>"${default_files_dir}/check.sh"
   done
 }
 
@@ -336,7 +336,7 @@ shift $((OPTIND - 1))
 script_to_test="$1"
 
 [ "$optionN" == "1" ] && make_env_files '.' && exit 0
-[ "$optionR" == "1" ] && rm -rf './testenv' && exit 0
+[ "$optionR" == "1" ] && rm -rf "${default_files_dir}" && exit 0
 [ "$optionJ" == "1" ] && check_files "$default_files_dir" && exit 0
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
