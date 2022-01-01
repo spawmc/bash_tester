@@ -200,7 +200,7 @@ function init_container() {
 
 function stop_container() {
   local container_name="$1"
-  docker stop "${container_name}" >/dev/null 2>&1
+  docker stop -t 1 "${container_name}" >/dev/null 2>&1
 }
 
 function _extract_keys_from_json() {
@@ -251,7 +251,7 @@ function _check_return_status() {
 function _check_output() {
   local output="$1"
   local expected_output="$2"
-  if [ "$(grep -oiP "${expected_output}" <<<"${output}")" -gt 0 ]; then
+  if [ "$(grep -cPi "${expected_output}" <<<"${output}")" -gt 0 ]; then
     _sucess_color "[+] output OK"
   else
     _error_color "[-] output FAIL"
@@ -271,7 +271,8 @@ function take_tests() {
   local json="${2}/inputs.json"
   local script_name="$3"
 
-  _warning_color "La primera vez que se ejecuta este script puede tardar un poco (se esta creando tu ambiente de pruebas), por favor espere..." >&2
+  _warning_color "${COL_CYAN}La primera vez que se ejecuta este script puede tardar un poco (se esta creando tu ambiente de pruebas), por favor espere...
+  ${COL_RESET}" >&2
 
   for key in $(jq 'keys[]' <"${json}"); do
     _info_color "--- Test ${key}: ---" | tee -a ./resume
@@ -397,7 +398,7 @@ dependency_check "jq" "docker" "shellcheck"
 
 function ctrl_c() {
   _error_color "Se ha interrumpido la ejecución del script"
-  docker stop "${default_docker_name}" &>/dev/null 2>&1
+  stop_container "${default_docker_name}"
   exit 1
 }
 
