@@ -59,20 +59,19 @@ function make_env_files() {
 #   pacman -S git' >"${default_files_dir}/init.sh"
 
   # JSON para ingresar las entradas y salidas esperadas
-  echo '
-{
+  echo '{
   "ejemplo1": {
-    "input": "./script --help",
-    "output": "^Usage: bash-tester.sh [-h|--help]",
+    "input": "--help",
+    "output": "^Usage: bash-tester.sh",
     "return": 0
   },
   "ejemplo2": {
-    "input": "./script",
-    "output": "Usage:",
+    "input": "--version",
+    "output": "^bash-tester.sh 0.1.0",
     "return": 1
   },
   "main": {
-    "input": "./script",
+    "input": "",
     "output": "Usage:",
     "return": 1
   }
@@ -102,7 +101,15 @@ function make_env_files() {
   # Dockerfile para crear un ambiente de pruebas
   echo 'FROM archlinux
 MAINTAINER spawnmc
-RUN pacman -Sy git expect --noconfirm' >./Dockerfile
+RUN pacman -Sy git expect wget --noconfirm
+RUN wget http://ccrypt.sourceforge.net/download/1.11/ccrypt-1.11.linux-x86_64.tar.gz
+RUN tar -zxf ccrypt-1.11.linux-x86_64.tar.gz
+RUN rm ccrypt-1.11.linux-x86_64.tar.gz
+RUN mkdir -p /usr/local/ccrypt
+RUN mv ccrypt-1.11.linux-x86_64 /usr/local/ccrypt/ccrypt
+RUN ln -s /usr/local/ccrypt/ccrypt/ccrypt /usr/bin/ccrypt
+RUN chmod +x /usr/bin/ccrypt
+' >./Dockerfile
 
 }
 
@@ -184,10 +191,6 @@ function init_environment() {
   docker exec -it "${container_name}" bash -c "${docker_dir}/${file}"
 }
 
-function _menu() {
-  echo
-}
-
 function init_container() {
   local container_name="$1"
   docker build -t "bash-tester:1" .
@@ -212,8 +215,7 @@ function make_function_from_key() {
     echo "function ${key}() {
   echo
 }
-      
-      " >>"${default_files_dir}/check.sh"
+" >>"${default_files_dir}/check.sh"
   done
 }
 
@@ -248,7 +250,7 @@ function _check_return_status() {
 function _check_output() {
   local output="$1"
   local expected_output="$2"
-  if [ "$(grep -c "${expected_output}" <<<"${output}")" -gt 0 ]; then
+  if [ "$(grep -oiP "${expected_output}" <<<"${output}")" -gt 0 ]; then
     _sucess_color "[+] output OK"
   else
     _error_color "[-] output FAIL"
@@ -352,7 +354,7 @@ shift $((OPTIND - 1))
 script_to_test="$1"
 
 [ "$optionN" == "1" ] && make_env_files '.' && exit 0
-[ "$optionR" == "1" ] && rm -rf "${default_files_dir}" && exit 0
+[ "$optionR" == "1" ] && rm -rf "${default_files_dir}" && rm -f all_logs.txt logs.txt resume Dockerfile && exit 0
 [ "$optionJ" == "1" ] && check_files "$default_files_dir" && exit 0
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
