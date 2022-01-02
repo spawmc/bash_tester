@@ -42,6 +42,7 @@ function usage() {
   echo "           -m: Crear funciones para el archivo check.sh a partir del archivo JSON"
   echo "    -b [NAME]: Crear respaldo del directorio de pruebas"
   echo "    -p script: Restaurar respaldo del directorio de pruebas, se debe de indicar el script principal"
+  echo "   -t timeout: Tiempo de espera para la ejecucion de un script (default: 5s)"
 }
 
 function make_env_files() {
@@ -79,6 +80,7 @@ function make_env_files() {
 }' >"${default_files_dir}/inputs.json"
 
   # Script de comprobación de estado final
+  # shellcheck disable=SC2016
   echo '#!/bin/bash
   
 # Script de comprobación de estado final
@@ -172,6 +174,7 @@ function make_backup() {
   mv -v logs.txt "${name}"/log.txt
   mv -v resume "${name}"/resume
   mv -v all_logs.txt "${name}"/all_logs.txt
+  mv -v Dockerfile "${name}"/Dockerfile
 }
 
 function _copy_to_docker() {
@@ -266,10 +269,35 @@ function run_final_test() {
   docker exec -it "${container_name}" bash -c ". ${default_docker_dir}/check.sh && ${key}"
 }
 
+function restore_from_backup() {
+  local main_script="$1"
+  local folder="${main_script%/*}"
+
+  if [ -d "${default_files_dir}" ]; then
+    _warning_color "El directorio ${default_files_dir} existe, desea sobreescribirlo?"
+    read -p "Presione [S/N]: " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Ss]$ ]]; then
+      rm -rf "${default_files_dir}"
+      cp -rf "${folder}" "${default_files_dir}"
+      cp -f "${main_script}" ./"${main_script##*/}"
+      cp -f "${folder}"/Dockerfile ./Dockerfile
+    else
+      _error_color "No se pudo restaurar el directorio ${default_files_dir}"
+      exit 1
+    fi
+  else
+    cp -r "${folder}" "${default_files_dir}"
+    cp "${main_script}" ./"${main_script##*/}"
+    cp -f "${folder}"/Dockerfile ./Dockerfile
+  fi
+}
+
 function take_tests() {
   local container_name="$1"
   local json="${2}/inputs.json"
   local script_name="$3"
+  local time_limit="$4"
 
   _warning_color "${COL_CYAN}La primera vez que se ejecuta este script puede tardar un poco (se esta creando tu ambiente de pruebas), por favor espere...
   ${COL_RESET}" >&2
@@ -288,7 +316,7 @@ function take_tests() {
     return=$(jq -r ".${key}.return" <"${json}")
 
     docker exec -it "${container_name}" bash -c "chmod +x ${default_docker_dir}/${script_name}"
-    docker exec -it "${container_name}" bash -c "${default_docker_dir}/${script_name} ${input}" >./logs.txt
+    docker exec -it "${container_name}" bash -c "timeout --preserve-status ${time_limit}s ${default_docker_dir}/${script_name} ${input}" >./logs.txt
     local return_status=$?
 
     _check_output "$(cat ./logs.txt)" "${output}" | tee -a ./resume
@@ -297,7 +325,7 @@ function take_tests() {
     _info_color "Ejecutando pruebas de estado final para ${key}" | tee -a ./resume
     run_final_test "${container_name}" "${key}" | tee -a ./resume
 
-    echo "------------------------------------" | tee -a ./resume
+    echo "---------------------------------------------------------" | tee -a ./resume
     cat ./logs.txt >>./all_logs.txt
     stop_container "${container_name}"
   done
@@ -312,11 +340,13 @@ optionJ=""
 optionM=""
 optionB=""
 optionP=""
+optionT=""
+paramT=""
 paramP=""
 paramB=""
 paramD=""
 
-while getopts ":hd:nrjmb:p:" opt; do
+while getopts ":hd:nrjmb:p:t:" opt; do
   case $opt in
   h)
     usage
@@ -346,6 +376,10 @@ while getopts ":hd:nrjmb:p:" opt; do
     optionP="1"
     paramP="$OPTARG"
     ;;
+  t)
+    optionT="1"
+    paramT="$OPTARG"
+    ;;
   \?)
     _error_color "Opción inválida: -$OPTARG" >&2
     exit 1
@@ -361,34 +395,13 @@ shift $((OPTIND - 1))
 
 script_to_test="$1"
 
-function restore_from_backup() {
-  local main_script="$1"
-  local folder="${main_script%/*}"
-
-  if [ -d "${default_files_dir}" ]; then
-    _warning_color "El directorio ${default_files_dir} existe, desea sobreescribirlo?"
-    read -p "Presione [S/N]: " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Ss]$ ]]; then
-      rm -rf "${default_files_dir}"
-      cp -r "${folder}" "${default_files_dir}"
-      cp "${main_script}" ./"${main_script##*/}"
-    else
-      _error_color "No se pudo restaurar el directorio ${default_files_dir}"
-      exit 1
-    fi
-  else
-    cp -r "${folder}" "${default_files_dir}"
-    cp "${main_script}" ./"${main_script##*/}"
-  fi
-}
-
 [ "$optionN" == "1" ] && make_env_files '.' && exit 0
 [ "$optionR" == "1" ] && rm -rf "${default_files_dir}" && rm -f all_logs.txt logs.txt resume Dockerfile && exit 0
 [ "$optionJ" == "1" ] && check_files "$default_files_dir" && exit 0
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
 [ "$optionP" == "1" ] && restore_from_backup "${paramP}" && exit 0
+[ "$optionT" == "1" ] && take_tests "$default_docker_name" "$default_files_dir" "$script_to_test" "${paramP}" && exit 0
 [ "$script_to_test" ] || {
   _error_color "Si desea probar un script debe especificarlo" >&2 && usage
   exit 1
@@ -404,4 +417,4 @@ function ctrl_c() {
 
 trap ctrl_c INT
 
-take_tests "$default_docker_name" "$default_files_dir" "$script_to_test"
+take_tests "$default_docker_name" "$default_files_dir" "$script_to_test" "5"
