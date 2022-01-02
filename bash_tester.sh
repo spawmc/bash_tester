@@ -401,7 +401,7 @@ script_to_test="$1"
 [ "$optionB" == "1" ] && make_backup "$paramB" && exit 0
 [ "$optionM" == "1" ] && make_function_from_key "${default_files_dir}/inputs.json" && exit 0
 [ "$optionP" == "1" ] && restore_from_backup "${paramP}" && exit 0
-[ "$optionT" == "1" ] && take_tests "$default_docker_name" "$default_files_dir" "$script_to_test" "${paramP}" && exit 0
+[ "$optionT" == "1" ] && take_tests "$default_docker_name" "$default_files_dir" "$script_to_test" "${paramT}" && exit 0
 [ "$script_to_test" ] || {
   _error_color "Si desea probar un script debe especificarlo" >&2 && usage
   exit 1
