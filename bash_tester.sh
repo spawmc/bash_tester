@@ -41,7 +41,7 @@ function usage() {
   echo "           -j: Comprobar archivos para el ambiente de pruebas"
   echo "           -m: Crear funciones para el archivo check.sh a partir del archivo JSON"
   echo "    -b [NAME]: Crear respaldo del directorio de pruebas"
-  echo "    -p script: Restaurar respaldo del directorio de pruebas, se debe de indicar el script principal"
+  echo "    -p script: Restaurar respaldo del directorio de pruebas, se debe de indicar el script principal ubicado en el directorio con los archivos a restaurar"
   echo "   -t timeout: Tiempo de espera para la ejecucion de un script (default: 5s)"
 }
 
@@ -80,7 +80,6 @@ function make_env_files() {
 }' >"${default_files_dir}/inputs.json"
 
   # Script de comprobación de estado final
-  # shellcheck disable=SC2016
   echo '#!/bin/bash
   
 # Script de comprobación de estado final
