@@ -1,5 +1,5 @@
+!testenv
 *.back
-!ruta_padre.back
 !puertos_abiertos.back
 all_logs.txt
 *.txt
