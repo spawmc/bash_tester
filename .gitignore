@@ -1,5 +1,13 @@
 *.back
+!ruta_padre.back
+!puertos_abiertos.back
 all_logs.txt
+*.txt
+Dockerfile
 logs.txt
 resume
-testenv
+*.zip
+*.sh
+!bash_tester.sh
+!puertos_abiertos.sh
+.idea

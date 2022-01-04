@@ -1,0 +1,17 @@
+{
+  "ejemplo2": {
+    "input": "192.168.100.11",
+    "output": "22",
+    "return": 0
+  },
+  "ejemplo1": {
+    "input": "",
+    "output": "Uso\\: puertos_abiertos\\.sh <host>",
+    "return": 1
+  },
+  "ejemplo3": {
+    "input": "spawnmc.me",
+    "output": "[80|443]",
+    "return": 0
+  }
+}
