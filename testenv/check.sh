@@ -17,14 +17,15 @@
 #   function main() {
 #     echo "OK"
 #   }
-function ejemplo1() {
+function 192.168.100.11() {
   echo
 }
 
-function ejemplo2() {
+function nothing() {
   echo
 }
 
-function ejemplo3() {
+function spawnmc.me() {
   echo
 }
+
