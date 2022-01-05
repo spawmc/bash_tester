@@ -3,7 +3,7 @@
 !puertos_abiertos.back
 all_logs.txt
 *.txt
-Dockerfile
+!Dockerfile
 logs.txt
 resume
 *.zip
