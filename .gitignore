@@ -3,3 +3,6 @@ all_logs.txt
 logs.txt
 resume
 testenv
+!matar_proceso_remoto.sh
+!testenv
+!Dockerfile

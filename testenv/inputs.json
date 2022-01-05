@@ -1,0 +1,22 @@
+{
+  "nothing": {
+    "input": "",
+    "output": "",
+    "return": 143
+  },
+  "complete": {
+    "input": "-p 128246 -u prueba -w 123456 -t 192.168.100.11 -r 22",
+    "output": "prueba@192.168.100.11",
+    "return": 0
+  },
+  "incomplete": {
+    "input": "-p",
+    "output": "requiere un argumento",
+    "return": 1
+  },
+  "invalid": {
+    "input": "-p 128068 -u prueba -w 123456 -t 192.168.100.11 -r 22",
+    "output": "No such process",
+    "return": 0
+  }
+}

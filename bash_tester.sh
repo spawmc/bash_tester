@@ -244,9 +244,9 @@ function _check_return_status() {
   local return_status="$1"
   local expected_return_status="$2"
   if [ "${return_status}" == "${expected_return_status}" ]; then
-    _sucess_color "[+] return code OK"
+    _sucess_color "return code OK"
   else
-    _error_color "[-] return code FAIL"
+    _error_color "return code FAIL"
   fi
 }
 
