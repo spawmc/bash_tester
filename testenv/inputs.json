@@ -1,0 +1,17 @@
+{
+  "nothing": {
+    "input": "",
+    "output": "^Uso\\: cifrar-archivos.sh",
+    "return": 1
+  },
+  "carpeta": {
+    "input": "/root/prueba",
+    "output": "",
+    "return": 0
+  },
+  "archivo": {
+    "input": "/root/prueba/1.txt",
+    "output": "^Uso\\: cifrar-archivos.sh",
+    "return": 1
+  }
+}

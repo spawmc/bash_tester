@@ -1,5 +1,10 @@
+!testenv
 *.back
 all_logs.txt
+*.txt
 logs.txt
 resume
-testenv
+*.zip
+*.sh
+.idea
+!cifrar-archivos.sh
